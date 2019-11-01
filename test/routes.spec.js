@@ -33,6 +33,13 @@ describe("Routes do the things they're supposed to", () => {
         .delete(`/bookmarks/${store.bookmarks[0].id}`)
         .expect(401);
     });
+    it('401 on POST/bookmarks/:id/edit', () => {
+      const target = store.bookmarks[0];
+      return supertest(app)
+        .post(`/bookmarks/${target.id}/edit`)
+        .send({ url: 'https://patched.com' })
+        .expect(401);
+    });
   });
   // 404s
   describe('404s when target does not exist', () => {
@@ -48,12 +55,16 @@ describe("Routes do the things they're supposed to", () => {
         .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
         .expect(404);
     });
-    // it('PATCH', () => {
-    //   return supertest(app)
-    //     .patch(`/bookmarks/not-a-valid-id`)
-    //     .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
-    //     .expect(404);
-    // });
+  });
+  // 500s
+  describe('500s when target does not exist', () => {
+    it('POST', () => {
+      return supertest(app)
+        .post(`/bookmarks/000000/edit`)
+        .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+        .send({ url: 'https://patched.com' })
+        .expect(500);
+    });
   });
   // 200s
   describe('200s with auth', () => {
@@ -93,17 +104,16 @@ describe("Routes do the things they're supposed to", () => {
           expect(store.bookmarks).eql(expected);
         });
     });
-    // giving up on this for now
-    // it('PUT /bookmarks/:id', () => {
-    //   const target = store.bookmarks[0];
-    //   return supertest(app)
-    //     .put(`/bookmarks/${target.id}`)
-    //     .send({ url: 'https://patched.com' })
-    //     .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
-    //     .expect(204)
-    //     .then(() => {
-    //       expect(store.bookmarks[0].url).eql('https://patched.com');
-    //     });
-    // });
+    it('POST /bookmarks/:id/edit works', () => {
+      const target = store.bookmarks[0];
+      return supertest(app)
+        .post(`/bookmarks/${target.id}/edit`)
+        .send({ url: 'https://patched.com' })
+        .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+        .expect(200)
+        .then(() => {
+          expect(store.bookmarks[0].url).eql('https://patched.com');
+        });
+    });
   });
 });

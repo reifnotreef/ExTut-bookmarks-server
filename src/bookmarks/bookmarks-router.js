@@ -79,5 +79,19 @@ bookmarksRouter
     logger.info(`Bookmark ${bookmark_id} deleted.`);
     res.status(204).end();
   });
+bookmarksRouter
+  .route('/bookmarks/:bookmark_id/edit')
+  .post(bodyParser, (req, res) => {
+    let target = store.bookmarks.find(
+      bookmark => bookmark.id === req.params.bookmark_id
+    );
+    target.title = req.body.title ? req.body.title : target.title;
+    target.url = req.body.url ? req.body.url : target.url;
+    target.rating = req.body.rating ? req.body.rating : target.rating;
+    target.description = req.body.description
+      ? req.body.description
+      : target.description;
+    res.status(200).send(target);
+  });
 
 module.exports = bookmarksRouter;

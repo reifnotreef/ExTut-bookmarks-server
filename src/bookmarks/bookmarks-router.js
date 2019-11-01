@@ -4,7 +4,7 @@ const uuid = require('uuid/v4');
 const routeValidator = require('express-route-validator');
 
 // local reqs
-const logger = require('../logger').default;
+const logger = require('../logger');
 const store = require('../store');
 
 // express reqs

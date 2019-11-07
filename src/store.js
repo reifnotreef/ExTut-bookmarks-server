@@ -3,9 +3,16 @@ const uuid = require('uuid/v4');
 const bookmarks = [
   {
     id: uuid(),
-    title: 'SO',
-    url: 'https://stackoverflow.com/',
-    description: "It's like quora meets reddit, for developers",
+    title: 'Thinkful',
+    url: 'https://www.thinkful.com',
+    description: 'Think outside the classroom',
+    rating: 5,
+  },
+  {
+    id: uuid(),
+    title: 'Google',
+    url: 'https://www.google.com',
+    description: 'Where we find everything else',
     rating: 4,
   },
   {

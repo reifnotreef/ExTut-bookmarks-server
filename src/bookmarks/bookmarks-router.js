@@ -83,14 +83,19 @@ bookmarksRouter
   .delete((req, res) => {
     const { bookmark_id } = req.params;
 
-    const bookmarkIndex = store.bookmarks.findIndex(b => b.id === bookmark_id);
-
+    // const bookmarkIndex = store.bookmarks.findIndex(b => b.id === bookmark_id);
+    const bookmarkIndex = BookmarkServices.deleteById(db, bookmark_id).then(
+      bookmark => {
+        res.status(200).location(`http://localhost:8000/bookmarks/`);
+      }
+      // console.log(result)
+    );
     if (bookmarkIndex === -1) {
       logger.error(`Bookmark with id ${bookmark_id} not found.`);
       return res.status(404).send('Bookmark Not Found');
     }
 
-    store.bookmarks.splice(bookmarkIndex, 1);
+    // store.bookmarks.splice(bookmarkIndex, 1);
 
     logger.info(`Bookmark with id ${bookmark_id} deleted.`);
     res.status(204).end();

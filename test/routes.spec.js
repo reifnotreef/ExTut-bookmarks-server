@@ -54,7 +54,7 @@ describe("Routes do the things they're supposed to", () => {
       expect(actual).eql(expectedItems);
     });
   });
-  it('successfully posts new inserts new item', () => {
+  it('post successfully inserts new item', () => {
     const expectedItem = {
       id: 99,
       title: 'site 99',
@@ -77,6 +77,22 @@ describe("Routes do the things they're supposed to", () => {
     return BookmarkServices.insertItem(db, expectedItem).then(() => {
       return BookmarkServices.getById(db, expectedItem.id).then(result => {
         expect(result).eql(expectedItem);
+      });
+    });
+  });
+  it('deletes bookmark by id', () => {
+    const expectedItem = {
+      id: 99,
+      title: 'site 99',
+      url: 'site99.com',
+      description: '99th site',
+      rating: 5,
+    };
+    return BookmarkServices.insertItem(db, expectedItem).then(() => {
+      return BookmarkServices.deleteById(db, expectedItem.id).then(() => {
+        return BookmarkServices.getAll(db).then(result => {
+          expect(result).eql([]);
+        });
       });
     });
   });

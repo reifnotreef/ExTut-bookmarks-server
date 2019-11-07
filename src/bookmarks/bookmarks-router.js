@@ -3,14 +3,23 @@ const uuid = require('uuid/v4');
 const { isWebUri } = require('valid-url');
 const logger = require('../logger');
 const store = require('../store');
+const BookmarkServices = require('../bookmark-services');
+const knex = require('knex');
 
 const bookmarksRouter = express.Router();
 const bodyParser = express.json();
 
+const db = knex({
+  client: 'pg',
+  connection: process.env.TEST_DB_URL,
+});
+
 bookmarksRouter
   .route('/bookmarks')
   .get((req, res) => {
-    res.json(store.bookmarks);
+    BookmarkServices.getAll(db).then(results => {
+      res.json(results);
+    });
   })
   .post(bodyParser, (req, res) => {
     for (const field of ['title', 'url', 'rating']) {
@@ -31,9 +40,15 @@ bookmarksRouter
       return res.status(400).send(`'url' must be a valid URL`);
     }
 
-    const bookmark = { id: uuid(), title, url, description, rating };
-
-    store.bookmarks.push(bookmark);
+    const bookmark = (title, url, rating, description);
+    BookmarkServices.insertItem(db, bookmark)
+      .then(bookmark => {
+        res
+          .status(201)
+          .location('/bookmarks/${bookmark.id}')
+          .json(bookmark);
+      })
+      .catch(next);
 
     logger.info(`Bookmark with id ${bookmark.id} created`);
     res
@@ -47,14 +62,23 @@ bookmarksRouter
   .get((req, res) => {
     const { bookmark_id } = req.params;
 
-    const bookmark = store.bookmarks.find(c => c.id == bookmark_id);
+    // const bookmark = store.bookmarks.find(c => c.id == bookmark_id);
+    BookmarkServices.getById(db, bookmark_id).then(
+      bookmark => {
+        res
+          .status(201)
+          .location(`http://localhost:8000/bookmarks/${bookmark_id}`)
+          .json(bookmark);
+      }
+      // console.log(result)
+    );
+    // .catch(next);
+    // if (!bookmark) {
+    //   logger.error(`Bookmark with id ${bookmark_id} not found.`);
+    //   return res.status(404).send('Bookmark Not Found');
+    // }
 
-    if (!bookmark) {
-      logger.error(`Bookmark with id ${bookmark_id} not found.`);
-      return res.status(404).send('Bookmark Not Found');
-    }
-
-    res.json(bookmark);
+    // res.json(bookmark);
   })
   .delete((req, res) => {
     const { bookmark_id } = req.params;

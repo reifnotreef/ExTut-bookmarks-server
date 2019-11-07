@@ -7,6 +7,12 @@ const { NODE_ENV } = require('./config');
 const validateBearerToken = require('./validate-bearer-token');
 const errorHandler = require('./error-handler');
 const bookmarksRouter = require('./bookmarks/bookmarks-router');
+const knex = require('knex');
+
+const db = knex({
+  client: 'pg',
+  connection: process.env.DB_URL,
+});
 
 const app = express();
 

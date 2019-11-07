@@ -41,15 +41,15 @@ describe("Routes do the things they're supposed to", () => {
       rating: 4,
     },
   ];
-  before(() => db('bookmarks').truncate());
+  before(() => db('bookmarks-test').truncate());
 
-  afterEach(() => db('bookmarks').truncate());
+  afterEach(() => db('bookmarks-test').truncate());
 
   after(() => db.destroy());
   // db is empty
   it('getAll() returns [] with no data in db', () => {
     const expectedItems = [];
-    db('bookmarks').truncate();
+    db('bookmarks-test').truncate();
     return BookmarkServices.getAll(db).then(actual => {
       expect(actual).eql(expectedItems);
     });

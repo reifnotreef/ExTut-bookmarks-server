@@ -11,7 +11,7 @@ const bodyParser = express.json();
 
 const db = knex({
   client: 'pg',
-  connection: process.env.TEST_DB_URL,
+  connection: process.env.DB_URL,
 });
 
 bookmarksRouter

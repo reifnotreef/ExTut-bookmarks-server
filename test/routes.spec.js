@@ -1,5 +1,5 @@
 // const app = require('../src/app');
-const BookmarkServices = require('../src/bookmark-services');
+const BookmarkServices = require('../src/bookmarks/bookmark-services');
 const knex = require('knex');
 // const store = require('../src/store');
 
@@ -41,15 +41,14 @@ describe("Routes do the things they're supposed to", () => {
       rating: 4,
     },
   ];
-  before(() => db('bookmarks-test').truncate());
+  before(() => db.raw('TRUNCATE bookmarks RESTART IDENTITY CASCADE'));
 
-  afterEach(() => db('bookmarks-test').truncate());
+  afterEach(() => db.raw('TRUNCATE bookmarks RESTART IDENTITY CASCADE'));
 
   after(() => db.destroy());
-  // db is empty
   it('getAll() returns [] with no data in db', () => {
     const expectedItems = [];
-    db('bookmarks-test').truncate();
+    db.raw('TRUNCATE bookmarks RESTART IDENTITY CASCADE');
     return BookmarkServices.getAll(db).then(actual => {
       expect(actual).eql(expectedItems);
     });
@@ -96,6 +95,42 @@ describe("Routes do the things they're supposed to", () => {
       });
     });
   });
+  it('POST /bookmarks/:id/edit works', () => {
+    const target = {
+      id: 1,
+      title: 'site one',
+      url: 'siteone.com',
+      description: 'first site',
+      rating: 1,
+    };
+    const data = {
+      title: 'edited title',
+      description: 'edited desc',
+    };
+    const expectedItem = {
+      id: 1,
+      title: 'edited title',
+      url: 'siteone.com',
+      description: 'edited desc',
+      rating: 1,
+    };
+    return BookmarkServices.insertItem(db, target).then(() => {
+      return BookmarkServices.updateItem(db, target.id, data).then(() => {
+        return BookmarkServices.getAll(db).then(actual => {
+          expect(actual[0]).eql(expectedItem);
+        });
+      });
+    });
+  });
+  // return supertest(app)
+  //   .post(`/bookmarks/${target.id}/edit`)
+  //   .send({ url: 'https://patched.com' })
+  //   .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+  //   .expect(200)
+  //   .then(() => {
+  //     expect(store.bookmarks[0].url).eql('https://patched.com');
+  //   });
+  // });
   // // 401s
   // describe('401s without auth', () => {
   //   it('401 without auth on GET/bookmarks', () => {
@@ -190,16 +225,16 @@ describe("Routes do the things they're supposed to", () => {
   //         expect(store.bookmarks).eql(expected);
   //       });
   //   });
-  //   it('POST /bookmarks/:id/edit works', () => {
-  //     const target = store.bookmarks[0];
-  //     return supertest(app)
-  //       .post(`/bookmarks/${target.id}/edit`)
-  //       .send({ url: 'https://patched.com' })
-  //       .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
-  //       .expect(200)
-  //       .then(() => {
-  //         expect(store.bookmarks[0].url).eql('https://patched.com');
-  //       });
-  //   });
+  // it('POST /bookmarks/:id/edit works', () => {
+  //   const target = store.bookmarks[0];
+  //   return supertest(app)
+  //     .post(`/bookmarks/${target.id}/edit`)
+  //     .send({ url: 'https://patched.com' })
+  //     .set('Authorization', `Bearer ${process.env.API_TOKEN}`)
+  //     .expect(200)
+  //     .then(() => {
+  //       expect(store.bookmarks[0].url).eql('https://patched.com');
+  //     });
+  // });
   // });
 });

@@ -9,9 +9,9 @@ const BookmarkServices = {
       .from('bookmarks')
       .first();
   },
-  updateItem(knex, id, data) {
+  updateItem(knex, targetId, data) {
     return knex('bookmarks')
-      .where({ id })
+      .where({ id: targetId })
       .update(data);
   },
   insertItem(knex, item) {

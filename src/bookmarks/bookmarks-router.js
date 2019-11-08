@@ -1,10 +1,9 @@
 const express = require('express');
-const uuid = require('uuid/v4');
 const { isWebUri } = require('valid-url');
 const logger = require('../logger');
-const store = require('../store');
 const BookmarkServices = require('../bookmark-services');
 const knex = require('knex');
+const xss = require('xss');
 
 const bookmarksRouter = express.Router();
 const bodyParser = express.json();
@@ -14,12 +13,22 @@ const db = knex({
   connection: process.env.DB_URL,
 });
 
+const serializeBookmark = bookmark => ({
+  id: bookmark.id,
+  title: xss(bookmark.title),
+  url: bookmark.url,
+  description: xss(bookmark.description),
+  rating: Number(bookmark.rating),
+});
+
 bookmarksRouter
   .route('/bookmarks')
-  .get((req, res) => {
-    BookmarkServices.getAll(db).then(results => {
-      res.json(results);
-    });
+  .get((req, res, next) => {
+    BookmarkServices.getAll(db)
+      .then(results => {
+        res.json(results.map(serializeBookmark));
+      })
+      .catch(next);
   })
   .post(bodyParser, (req, res) => {
     for (const field of ['title', 'url', 'rating']) {
@@ -46,7 +55,7 @@ bookmarksRouter
         res
           .status(201)
           .location('/bookmarks/${bookmark.id}')
-          .json(bookmark);
+          .json(serializeBookmark(bookmark));
       })
       .catch(next);
 
@@ -68,7 +77,7 @@ bookmarksRouter
         res
           .status(201)
           .location(`http://localhost:8000/bookmarks/${bookmark_id}`)
-          .json(bookmark);
+          .json(serializeBookmark(bookmark));
       }
       // console.log(result)
     );
@@ -80,16 +89,18 @@ bookmarksRouter
 
     // res.json(bookmark);
   })
-  .delete((req, res) => {
+  .delete((req, res, next) => {
     const { bookmark_id } = req.params;
 
     // const bookmarkIndex = store.bookmarks.findIndex(b => b.id === bookmark_id);
-    const bookmarkIndex = BookmarkServices.deleteById(db, bookmark_id).then(
-      bookmark => {
-        res.status(200).location(`http://localhost:8000/bookmarks/`);
-      }
-      // console.log(result)
-    );
+    const bookmarkIndex = BookmarkServices.deleteById(db, bookmark_id)
+      .then(
+        bookmark => {
+          res.status(204).end();
+        }
+        // console.log(result)
+      )
+      .catch(next);
     if (bookmarkIndex === -1) {
       logger.error(`Bookmark with id ${bookmark_id} not found.`);
       return res.status(404).send('Bookmark Not Found');

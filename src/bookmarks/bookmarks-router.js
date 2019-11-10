@@ -5,17 +5,32 @@ const routeValidator = require('express-route-validator');
 
 // local reqs
 const logger = require('../logger');
-const store = require('../store');
+const { bookmarkValidation } = require('./bookmark-validation');
+const BookmarksService = require('./bookmark-services');
 
 // express reqs
 const bookmarksRouter = express.Router();
 const bodyParser = express.json();
 
+const serializeBookmark = bookmark => ({
+  id: bookmark.id,
+  title: xss(bookmark.title),
+  url: bookmark.url,
+  description: xss(bookmark.description),
+  rating: Number(bookmark.rating),
+});
+
 bookmarksRouter
-  .route('/bookmarks')
-  .get((req, res) => {
-    res.json(store.bookmarks);
+  .route('/')
+
+  .get((req, res, next) => {
+    BookmarksService.getAllBookmarks(req.app.get('db'))
+      .then(bookmarks => {
+        res.json(bookmarks.map(serializeBookmark));
+      })
+      .catch(next);
   })
+
   .post(
     bodyParser,
     routeValidator.validate({
@@ -30,68 +45,68 @@ bookmarksRouter
         },
       },
     }),
-    (req, res) => {
-      const bookmark = {
-        id: uuid(),
-        title: req.body.title,
-        url: req.body.url,
-        description: req.body.description,
-        rating: req.body.rating,
-      };
+    (req, res, next) => {
+      const { title, url, description, rating } = req.body;
+      const newBookmark = { title, url, description, rating };
 
-      store.bookmarks.push(bookmark);
-      logger.info(`Bookmark ${bookmark.id} created`);
-      res
-        .status(201)
-        .location(`http://localhost:8000/bookmarks/${bookmark.id}`)
-        .json(bookmark);
+      for (const field of ['title', 'url', 'rating']) {
+        if (!newBookmark[field]) {
+          logger.error(`${field} is required`);
+          return res.status(400).send({
+            error: { message: `'${field}' is required` },
+          });
+        }
+      }
+
+      const error = bookmarkValidation(newBookmark);
+
+      if (error) return res.status(400).send(error);
+
+      BookmarksService.insertBookmark(req.app.get('db'), newBookmark)
+        .then(bookmark => {
+          logger.info(`Bookmark with id ${bookmark.id} created.`);
+          res
+            .status(201)
+            .location(path.posix.join(req.originalUrl, `${bookmark.id}`))
+            .json(serializeBookmark(bookmark));
+        })
+        .catch(next);
     }
   );
 
 bookmarksRouter
-  .route('/bookmarks/:bookmark_id')
-  .get((req, res) => {
+  .route('/:bookmark_id')
+  .get((req, res, next) => {
     const { bookmark_id } = req.params;
-
-    const bookmark = store.bookmarks.find(item => item.id == bookmark_id);
-
-    if (!bookmark) {
-      logger.error(`Bookmark ${bookmark_id} not found.`);
-      return res.status(404).send(`Bookmark ${bookmark_id} Not Found`);
-    }
-
-    res.json(bookmark);
+    BookmarksService.getById(db, bookmark_id)
+      .then(bookmark => {
+        !bookmark
+          ? logger.error(`Bookmark with id ${bookmark_id} not found`)
+          : (res.bookmark = bookmark);
+        next();
+      })
+      .catch(next);
   })
   .delete((req, res) => {
     const { bookmark_id } = req.params;
-
-    const bookmarkIndex = store.bookmarks.findIndex(
-      item => item.id === bookmark_id
-    );
-
-    if (bookmarkIndex === -1) {
-      logger.error(`Bookmark ${bookmark_id} not found.`);
-      return res.status(404).send(`Bookmark ${bookmark_id} Not Found`);
-    }
-
-    store.bookmarks.splice(bookmarkIndex, 1);
-
-    logger.info(`Bookmark ${bookmark_id} deleted.`);
-    res.status(204).end();
-  });
-bookmarksRouter
-  .route('/bookmarks/:bookmark_id/edit')
+    BookmarksService.delete(db, bookmark_id)
+      .then(bookmark => {
+        !bookmark
+          ? logger.error(`Bookmark with id ${bookmark_id} not found`)
+          : res.status(204).end();
+      })
+      .catch(next);
+  })
   .post(bodyParser, (req, res) => {
-    let target = store.bookmarks.find(
-      bookmark => bookmark.id === req.params.bookmark_id
-    );
-    target.title = req.body.title ? req.body.title : target.title;
-    target.url = req.body.url ? req.body.url : target.url;
-    target.rating = req.body.rating ? req.body.rating : target.rating;
-    target.description = req.body.description
-      ? req.body.description
-      : target.description;
-    res.status(200).send(target);
+    const { bookmark_id } = req.params;
+    const { title, url, description, rating } = req.body;
+    const updateTarget = { title, url, description, rating };
+
+    BookmarksService.update(db, bookmark_id, updateTarget)
+      .then(() => {
+        res.status(204).end();
+      })
+      .catch(next);
   });
 
 module.exports = bookmarksRouter;

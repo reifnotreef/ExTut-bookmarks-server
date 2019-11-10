@@ -25,8 +25,6 @@ app.use(bookmarksRouter);
 app.use(errorHandler);
 
 // base url/route
-app.get('/', (req, res) => {
-  res.send('Hello, world!');
-});
+app.use('/bookmarks', bookmarksRouter);
 
 module.exports = app;
